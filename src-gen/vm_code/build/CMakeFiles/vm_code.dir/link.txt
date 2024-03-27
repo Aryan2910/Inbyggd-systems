@@ -1,0 +1,1 @@
+/usr/bin/cc -O3 -DNDEBUG CMakeFiles/vm_code.dir/lib/schedule.c.o CMakeFiles/vm_code.dir/_vm_code_main.c.o CMakeFiles/vm_code.dir/_input.c.o CMakeFiles/vm_code.dir/_output.c.o CMakeFiles/vm_code.dir/_machine.c.o CMakeFiles/vm_code.dir/vm_code.c.o -o vm_code  -lm core/libcore.a 

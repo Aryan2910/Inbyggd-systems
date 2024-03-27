@@ -1,0 +1,51 @@
+target C
+
+import Input from "vm_extra.lf"
+import Output from "vm_extra.lf"
+
+
+reactor Machine (stock:int[] = {2,2,2}) {
+    //coin system
+    output coin_out : bool          //for connecting to change
+    //cancel system
+    input cancel_in : bool          //for taking in cancel
+    //switch system
+    input sel_in : int              //for taking input for select
+    output bev_out : int
+    //select system
+    reaction (sel_in) -> bev_out {=
+        switch(sel_in -> value) {
+            case 0: // bev-0 out
+                lf_set(bev_out, 0);
+                break;
+            case 1: // bev-1 out
+                lf_set(bev_out, 1);
+                break;
+            case 2: // bev-2 out
+                lf_set(bev_out, 2);
+                break;
+            default:
+                break;
+        }
+    =}
+    //cancel system
+    reaction (cancel_in) -> coin_out {=
+        lf_set(coin_out, true);
+    =}
+}
+
+main reactor{
+in = new Input()
+out = new Output()
+machine = new Machine()
+
+//Connections
+
+//stock manipulator
+in.sel -> machine.sel_in
+machine.bev_out -> out.beverage
+//cancel system
+in.cancel -> machine.cancel_in
+machine.coin_out -> out.change
+
+}

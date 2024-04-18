@@ -1,0 +1,171 @@
+target C
+
+import Input from "vm_extra.lf"
+import Output from "vm_extra.lf"
+
+//Preamble for display
+preamble {=
+    typedef struct d_t {
+      string line;
+      int value;
+    } d_t;
+  =}
+
+reactor Machine (stock:int[] = {2,2,2}) {
+    //coin system
+    output coin_out : bool          //for connecting to change
+    //coin in to check if the coin has been inserted
+    input coin_in : bool
+    state coin_value : int
+    //cancel system
+    input cancel_in : bool          //for taking in cancel
+    state sel_value : int   = -1       //for storing select value
+    //switch system
+    input sel_in : int              //for taking input for select
+    output bev_out : int
+    state sel_stock : int  // for managing the stock
+    //Display
+    output text_out : string
+    
+
+    //////////////////////select system////////////////////////////////
+    reaction (sel_in) -> bev_out {=
+    self -> sel_value = sel_in -> value;
+    self -> sel_stock = sel_in -> value;
+    if (self -> coin_value > 0){
+        if (self -> stock[self->sel_stock] > 0){
+        switch(sel_in -> value) {
+
+            case 0: // bev-0 out
+                lf_set(bev_out, 0);
+                self -> coin_value --;
+                self -> sel_value = -1;
+                self -> stock[self-> sel_stock] --;
+                printf("Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                self -> sel_value = -1;
+                break;
+            case 1: // bev-1 out
+                lf_set(bev_out, 1);
+                self -> coin_value --;
+                self -> sel_value = -1;
+                self -> stock[self-> sel_stock] --;
+                printf("Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                break;
+            case 2: // bev-2 out
+                lf_set(bev_out, 2);
+                self -> coin_value --;
+                self -> sel_value = -1;
+                self -> stock[self-> sel_stock] --;
+                printf("Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                break;
+            default:
+                printf("Invalid input\n");
+        }
+        }
+    
+    else {
+        printf("Out of stock. Press x to get coins\n");
+        self -> sel_value = -1;
+    }
+    
+    }
+    else {
+        printf("insert coin\n");
+    }
+    
+    
+    =}
+
+///////////////////////cancel system//////////////////////////
+    reaction (cancel_in) -> coin_out,text_out {=
+    if (self -> coin_value > 0){
+        lf_set(coin_out, true);
+        printf("Remaining coins: %d\n", self -> coin_value);
+        self -> coin_value = 0;
+    }
+    else {
+        //printf("No coin inserted\n");
+        struct d_t can_nc = {"No coins",42}; 
+        lf_set(text_out,can_nc);
+        self -> coin_value = 0;
+    }
+    =}
+
+///////////////////////// COIN IN ///////////////////////////////
+reaction (coin_in) -> bev_out {=
+    if (coin_in -> value == true){
+        printf("Select the beverage you like \n");
+        self-> coin_value ++;
+        //printf("Coin:%d\n",self -> coin_value);
+        //printf("sel:%d\n",self -> sel_stock);
+        if (self -> sel_value >= 0){
+            if (self -> stock[self->sel_stock] > 0){
+            
+                switch(self -> sel_value) {
+                    case 0: // bev-0 out
+                        lf_set(bev_out, 0);
+                        self -> coin_value --;
+                        self -> stock[self-> sel_stock] --;
+                        printf("Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                        self -> sel_value = -1;
+                        break;
+                    case 1: // bev-1 out
+                        lf_set(bev_out, 1);
+                        self -> coin_value --;
+                        self -> sel_value = -1;
+                        self -> stock[self-> sel_stock] --;
+                        printf("Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                        break;
+                    case 2: // bev-2 out
+                        lf_set(bev_out, 2);
+                        self -> coin_value --;
+                        self -> sel_value = -1;
+                        self -> stock[self-> sel_stock] --;
+                        printf("Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                        break;
+                    default:
+                        printf("Invalid input\n");
+                    }
+            }
+            else {
+        printf("Out of stock. Press x to get coins\n");
+        self -> sel_value = -1;
+            }
+        }
+
+   
+    }
+    else {
+        printf("Insert coin");
+        self -> coin_value = 0;
+    }
+
+=}
+}
+
+reactor display {
+    input text_in : string
+    
+    reaction (text_in) {=                 
+        sprintf("%s",text_in);
+    =}
+}
+
+main reactor{
+in = new Input()
+out = new Output()
+machine = new Machine()
+disp = new display()
+
+//Connections
+in.coin -> machine.coin_in
+//stock manipulator
+in.sel -> machine.sel_in
+machine.bev_out -> out.beverage
+//cancel system
+in.cancel -> machine.cancel_in
+machine.coin_out -> out.change
+//Display system
+machine.text_out -> disp.text_in
+
+}

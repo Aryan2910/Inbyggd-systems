@@ -3,15 +3,11 @@ target C
 import Input from "vm_extra.lf"
 import Output from "vm_extra.lf"
 
-//Preamble for display
-preamble {=
-    typedef struct d_t {
-      string line;
-      int value;
-    } d_t;
-  =}
-
 reactor Machine (stock:int[] = {2,2,2}) {
+    preamble {=
+        #include <string.h>
+        char disp_buffer[100];
+    =}
     //coin system
     output coin_out : bool          //for connecting to change
     //coin in to check if the coin has been inserted
@@ -24,14 +20,16 @@ reactor Machine (stock:int[] = {2,2,2}) {
     input sel_in : int              //for taking input for select
     output bev_out : int
     state sel_stock : int  // for managing the stock
-    //Display
-    output text_out : string
-    
+    // display system
+    output disp_msg: string 
+    //state disp_buffer: char [100] = "";
+    //select system
+    reaction (sel_in) -> bev_out, disp_msg {=
 
-    //////////////////////select system////////////////////////////////
-    reaction (sel_in) -> bev_out {=
     self -> sel_value = sel_in -> value;
     self -> sel_stock = sel_in -> value;
+
+
     if (self -> coin_value > 0){
         if (self -> stock[self->sel_stock] > 0){
         switch(sel_in -> value) {
@@ -41,7 +39,9 @@ reactor Machine (stock:int[] = {2,2,2}) {
                 self -> coin_value --;
                 self -> sel_value = -1;
                 self -> stock[self-> sel_stock] --;
-                printf("Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                //printf("Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                sprintf(disp_buffer,"Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                lf_set(disp_msg,disp_buffer);
                 self -> sel_value = -1;
                 break;
             case 1: // bev-1 out
@@ -49,55 +49,66 @@ reactor Machine (stock:int[] = {2,2,2}) {
                 self -> coin_value --;
                 self -> sel_value = -1;
                 self -> stock[self-> sel_stock] --;
-                printf("Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                //printf("Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                sprintf(disp_buffer,"Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                lf_set(disp_msg,disp_buffer);
                 break;
             case 2: // bev-2 out
                 lf_set(bev_out, 2);
                 self -> coin_value --;
                 self -> sel_value = -1;
                 self -> stock[self-> sel_stock] --;
-                printf("Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                //printf("Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                sprintf(disp_buffer,"Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                lf_set(disp_msg,disp_buffer);
                 break;
             default:
-                printf("Invalid input\n");
+                //printf("Invalid input\n");
+                sprintf(disp_buffer,"Invalid inpur\n");
+                lf_set(disp_msg,disp_buffer);
         }
         }
     
     else {
-        printf("Out of stock. Press x to get coins\n");
+        //printf("Out of stock. Press x to get coins\n");
+        sprintf(disp_buffer,"Out of stock. Press x to get coins\n");
+        lf_set(disp_msg,disp_buffer);
         self -> sel_value = -1;
     }
     
     }
     else {
-        printf("insert coin\n");
+        //printf("insert coin\n");
+        sprintf(disp_buffer,"insert coin\n");
+        lf_set(disp_msg,disp_buffer);
     }
     
     
     =}
-
-///////////////////////cancel system//////////////////////////
-    reaction (cancel_in) -> coin_out,text_out {=
+    //cancel system
+    reaction (cancel_in) -> coin_out, disp_msg {=
     if (self -> coin_value > 0){
         lf_set(coin_out, true);
-        printf("Remaining coins: %d\n", self -> coin_value);
+        sprintf(disp_buffer,"Remaining coins: %d\n", self -> coin_value);
+        lf_set(disp_msg,disp_buffer);
         self -> coin_value = 0;
     }
     else {
         //printf("No coin inserted\n");
-        struct d_t can_nc = {"No coins",42}; 
-        lf_set(text_out,can_nc);
+        sprintf(disp_buffer,"No coin inserted \n");
+        lf_set(disp_msg,disp_buffer);
         self -> coin_value = 0;
     }
     =}
 
-///////////////////////// COIN IN ///////////////////////////////
-reaction (coin_in) -> bev_out {=
+reaction (coin_in) -> bev_out, disp_msg {=
     if (coin_in -> value == true){
-        printf("Select the beverage you like \n");
+        //printf("Select the beverage you like \n");
+        sprintf(disp_buffer,"Select the beverage you like \n");
+        lf_set(disp_msg,disp_buffer);
         self-> coin_value ++;
         //printf("Coin:%d\n",self -> coin_value);
-        //printf("sel:%d\n",self -> sel_stock);
+
         if (self -> sel_value >= 0){
             if (self -> stock[self->sel_stock] > 0){
             
@@ -106,7 +117,9 @@ reaction (coin_in) -> bev_out {=
                         lf_set(bev_out, 0);
                         self -> coin_value --;
                         self -> stock[self-> sel_stock] --;
-                        printf("Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                        //printf("Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                        sprintf(disp_buffer,"Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                        lf_set(disp_msg,disp_buffer);
                         self -> sel_value = -1;
                         break;
                     case 1: // bev-1 out
@@ -114,21 +127,29 @@ reaction (coin_in) -> bev_out {=
                         self -> coin_value --;
                         self -> sel_value = -1;
                         self -> stock[self-> sel_stock] --;
-                        printf("Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                        //printf("Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                        sprintf(disp_buffer,"Beverage(1):%d\n",self -> stock[self-> sel_stock]);
+                        lf_set(disp_msg,disp_buffer);
                         break;
                     case 2: // bev-2 out
                         lf_set(bev_out, 2);
                         self -> coin_value --;
                         self -> sel_value = -1;
                         self -> stock[self-> sel_stock] --;
-                        printf("Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                        //printf("Beverage(2):%d\n",self -> stock[self-> sel_stock]);
+                        sprintf(disp_buffer,"Beverage(0):%d\n",self -> stock[self-> sel_stock]);
+                        lf_set(disp_msg,disp_buffer);
                         break;
                     default:
-                        printf("Invalid input\n");
+                        //printf("Invalid input\n");
+                        sprintf(disp_buffer,"Invalid input\n");
+                        lf_set(disp_msg,disp_buffer);
                     }
             }
             else {
-        printf("Out of stock. Press x to get coins\n");
+        //printf("Out of stock. Press x to get coins\n");
+        sprintf(disp_buffer,"Out of stock. Press x to get coins\n");
+        lf_set(disp_msg,disp_buffer);
         self -> sel_value = -1;
             }
         }
@@ -137,26 +158,46 @@ reaction (coin_in) -> bev_out {=
     }
     else {
         printf("Insert coin");
+        sprintf(disp_buffer,"Insert coin");
+        lf_set(disp_msg,disp_buffer);
         self -> coin_value = 0;
     }
 
 =}
 }
 
-reactor display {
-    input text_in : string
-    
-    reaction (text_in) {=                 
-        sprintf("%s",text_in);
-    =}
-}
+reactor Display{ 
+    input disp_in: string 
+    logical action a;
+ //   state count : int = 4;
+  // timer t (0, 1 sec);
 
+    reaction (disp_in) {=
+        lf_print("%s", disp_in -> value);
+        //self -> count = 4;
+    =} deadline(10 msec) {=
+        lf_print("Display off\n");
+    =}
+
+  /*  reaction (t) {=
+        if (!self -> count--){
+            lf_print("Display off\n");
+        }
+    =} */
+//Timer prints display off at the start
+//LF schedule
+   /* reaction (disp_in) -> a {=              //    Prints display off again and again
+        lf_schedule(a ,SEC(5));
+    =}
+    reaction (a){=
+        lf_print("Display off");
+    =}*/
+}
 main reactor{
 in = new Input()
 out = new Output()
 machine = new Machine()
-disp = new display()
-
+display = new Display ()
 //Connections
 in.coin -> machine.coin_in
 //stock manipulator
@@ -165,7 +206,6 @@ machine.bev_out -> out.beverage
 //cancel system
 in.cancel -> machine.cancel_in
 machine.coin_out -> out.change
-//Display system
-machine.text_out -> disp.text_in
-
+// display system
+machine.disp_msg -> display.disp_in
 }

@@ -22,7 +22,10 @@ reactor Machine (stock:int[] = {2,2,2}) {
     state sel_stock : int  // for managing the stock
     // display system
     output disp_msg: string 
-    //state disp_buffer: char [100] = "";
+    //coin time-out
+    timer t (0, 1 sec);
+    state count : int = 10;
+
     //select system
     reaction (sel_in) -> bev_out, disp_msg {=
 
@@ -164,26 +167,36 @@ reaction (coin_in) -> bev_out, disp_msg {=
     }
 
 =}
+///////Coin out state/////////////////////////
+    reaction (t) -> coin_out, disp_msg {=
+        if (!self -> count--){
+            lf_print("Machine timeout, please collect your change:%d\n", self -> coin_value);
+            self -> coin_value = 0;
+        }
+    =}
+    
+
+
 }
 
 reactor Display{ 
     input disp_in: string 
     logical action a;
- //   state count : int = 4;
-  // timer t (0, 1 sec);
+    state count : int = 4;
+    timer t (0, 1 sec);
 
     reaction (disp_in) {=
         lf_print("%s", disp_in -> value);
-        //self -> count = 4;
-    =} deadline(10 msec) {=
-        lf_print("Display off\n");
+        self -> count = 4;
+    /*=} deadline(10 msec) {=
+        lf_print("Display off\n");*/
     =}
 
-  /*  reaction (t) {=
+    reaction (t) {=
         if (!self -> count--){
             lf_print("Display off\n");
         }
-    =} */
+    =}
 //Timer prints display off at the start
 //LF schedule
    /* reaction (disp_in) -> a {=              //    Prints display off again and again
